@@ -7,6 +7,7 @@ import re
 import warnings
 
 from numpy.core.numerictypes import issubclass_, issubsctype, issubdtype
+from numpy.core.overrides import set_module
 from numpy.core import ndarray, ufunc, asarray
 import numpy as np
 
@@ -163,13 +164,6 @@ def deprecate(*args, **kwargs):
     if args:
         fn = args[0]
         args = args[1:]
-
-        # backward compatibility -- can be removed
-        # after next release
-        if 'newname' in kwargs:
-            kwargs['new_name'] = kwargs.pop('newname')
-        if 'oldname' in kwargs:
-            kwargs['old_name'] = kwargs.pop('oldname')
 
         return _Deprecate(*args, **kwargs)(fn)
     else:
@@ -439,6 +433,7 @@ def _info(obj, output=sys.stdout):
     print("type: %s" % obj.dtype, file=output)
 
 
+@set_module('numpy')
 def info(object=None, maxwidth=76, output=sys.stdout, toplevel='numpy'):
     """
     Get help information for a function, class, or module.
@@ -644,6 +639,7 @@ def info(object=None, maxwidth=76, output=sys.stdout, toplevel='numpy'):
         print(inspect.getdoc(object), file=output)
 
 
+@set_module('numpy')
 def source(object, output=sys.stdout):
     """
     Print or write to a file the source code for a NumPy object.
@@ -701,6 +697,8 @@ _lookfor_caches = {}
 # signature
 _function_signature_re = re.compile(r"[a-z0-9_]+\(.*[,=].*\)", re.I)
 
+
+@set_module('numpy')
 def lookfor(what, module=None, import_modules=True, regenerate=False,
             output=None):
     """

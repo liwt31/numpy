@@ -1,5 +1,6 @@
 from __future__ import division, absolute_import, print_function
 
+import inspect
 import sys
 
 import numpy as np
@@ -7,8 +8,14 @@ from numpy.testing import (
     assert_, assert_equal, assert_raises, assert_raises_regex)
 from numpy.core.overrides import (
     get_overloaded_types_and_args, array_function_dispatch,
-    verify_matching_signatures)
+    verify_matching_signatures, ENABLE_ARRAY_FUNCTION)
 from numpy.core.numeric import pickle
+import pytest
+
+
+requires_array_function = pytest.mark.skipif(
+    not ENABLE_ARRAY_FUNCTION,
+    reason="__array_function__ dispatch not enabled.")
 
 
 def _get_overloaded_args(relevant_args):
@@ -165,6 +172,7 @@ def dispatched_one_arg(array):
     return 'original'
 
 
+@requires_array_function
 class TestArrayFunctionDispatch(object):
 
     def test_pickle(self):
@@ -204,6 +212,7 @@ class TestArrayFunctionDispatch(object):
             dispatched_one_arg(array)
 
 
+@requires_array_function
 class TestVerifyMatchingSignatures(object):
 
     def test_verify_matching_signatures(self):
@@ -256,6 +265,7 @@ def _new_duck_type_and_implements():
     return (MyArray, implements)
 
 
+@requires_array_function
 class TestArrayFunctionImplementation(object):
 
     def test_one_arg(self):
@@ -302,6 +312,7 @@ class TestArrayFunctionImplementation(object):
 
         array = np.array(1)
         assert_(func(array) is array)
+        assert_equal(func.__module__, 'my')
 
         with assert_raises_regex(
                 TypeError, "no implementation found for 'my.func'"):
@@ -322,15 +333,21 @@ class TestNDArrayMethods(object):
         assert_equal(repr(array), 'MyArray(1)')
         assert_equal(str(array), '1')
 
-        
+
 class TestNumPyFunctions(object):
 
-    def test_module(self):
+    def test_set_module(self):
         assert_equal(np.sum.__module__, 'numpy')
         assert_equal(np.char.equal.__module__, 'numpy.char')
         assert_equal(np.fft.fft.__module__, 'numpy.fft')
         assert_equal(np.linalg.solve.__module__, 'numpy.linalg')
 
+    @pytest.mark.skipif(sys.version_info[0] < 3, reason="Python 3 only")
+    def test_inspect_sum(self):
+        signature = inspect.signature(np.sum)
+        assert_('axis' in signature.parameters)
+
+    @requires_array_function
     def test_override_sum(self):
         MyArray, implements = _new_duck_type_and_implements()
 
